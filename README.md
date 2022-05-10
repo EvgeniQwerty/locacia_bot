@@ -1,5 +1,5 @@
 # locacia_bot
-Telegram bot for project Locacia (with function of accepting payments)
+Telegram bot for project Locacia (with payment function)
 
 v0.5
 
