@@ -167,14 +167,12 @@ def get_name(message):
 #реагируем на пре чекаут квери
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    print('test2')
     bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
 #если оплата прошла успещно, выводим сообщение и двигаемся дальше по алгоритму
 @bot.message_handler(content_types=['successful_payment'])
 def process_pay(message):
-    print('test3')
     if message.successful_payment.invoice_payload == 'tiket':
         mk = generate_markup()
         bot.send_message(message.from_user.id, 'Платеж прошёл успешно. Представьтесь, пожалуйста. После этого вам будет выслан код, '
