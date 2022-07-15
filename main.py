@@ -4,7 +4,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from telebot.types import LabeledPrice
 
-
+admins = ['admin_id']
 max_id = 60
 place = 'Place1'
 
@@ -56,6 +56,7 @@ def main_menu(message):
 @bot.message_handler(content_types=['text'])
 def start(message):
     global max_id
+    global admins
 
     if message.text == '/start' or message.text == 'Вернуться в главное меню':
 
@@ -69,60 +70,68 @@ def start(message):
                                               'закончились. Ждём тебя в следующий раз!', reply_markup=mk)
 
     elif message.text == 'Оплатить':
-        print('test')
-        bot.send_invoice(chat_id=message.from_user.id, title='Проходка в Локацию', description='Та самая',
-                         invoice_payload='tiket', provider_token='YOUR_PROVIDER_TOKEN',
-                         currency='RUB', start_parameter='tiket', prices=[LabeledPrice(label='Руб.', amount=15000)])
+        mk = generate_markup(['Вернуться в главное меню'])
+        bot.send_message(message.chat.id, 'Оплата прямо из чата', reply_markup=mk)
+        bot.send_invoice(chat_id=message.from_user.id, title='Проходка на Локацию', description='Та самая',
+                         invoice_payload='tiсket', provider_token='YOUR_PROVIDER_TOKEN',
+                         currency='RUB', start_parameter='ticket', prices=[LabeledPrice(label='Руб.', amount=15000)])
 
     elif message.text == '/help':
-        mk = generate_markup('Вернуться в главное меню')
-        bot.send_message(message.chat.id, 'А что тут писать, всё же и так интуитивно))', reply_markup=mk)
+        mk = generate_markup(['Вернуться в главное меню'])
+        bot.send_message(message.chat.id, 'А что тут писать, всё же и так интуитивно', reply_markup=mk)
 
     elif message.text == '/change_max_visitors':
-        mk = generate_markup(['Вернуться в главное меню'])
-        bot.send_message(message.chat.id, 'Введите максимальное количество проходок',
-                         reply_markup=mk)
-        bot.register_next_step_handler(message, set_number_of_visitors)
+        if message.chat.id in admins:
+            mk = generate_markup(['Вернуться в главное меню'])
+            bot.send_message(message.chat.id, 'Введите максимальное количество проходок',
+                            reply_markup=mk)
+            bot.register_next_step_handler(message, set_number_of_visitors)
 
     elif message.text == '/show_visitors':
-        docs = get_data_from_firebase()
-        id_name = ''
-        for doc in docs:
-            id = 0
-            name = ''
-            for key, value in doc.to_dict().items():
-                if key == 'ID':
-                    id = value
-                elif key == 'Name':
-                    name = value
-            id_name += '{} - {}\n'.format(id, name)
+        if message.chat.id in admins:
+            docs = get_data_from_firebase()
+            id_name = ''
+            for doc in docs:
+                id = 0
+                name = ''
+                for key, value in doc.to_dict().items():
+                    if key == 'ID':
+                        id = value
+                    elif key == 'Name':
+                        name = value
+                id_name += '{} - {}\n'.format(id, name)
 
-        mk = generate_markup(['Вернуться в главное меню'])
-        bot.send_message(message.chat.id, id_name, reply_markup=mk)
+            mk = generate_markup(['Вернуться в главное меню'])
+            bot.send_message(message.chat.id, id_name, reply_markup=mk)
 
     elif message.text == '/show_number_of_visitors':
-        docs = get_data_from_firebase()
+        if message.chat.id in admins:
+            docs = get_data_from_firebase()
 
-        if len(docs) == 0:
-            id = 0
-        else:
-            id = docs[-1].to_dict()['ID']
+            if len(docs) == 0:
+                id = 0
+            else:
+                id = docs[-1].to_dict()['ID']
 
-        mk = generate_markup(['Вернуться в главное меню'])
-        bot.send_message(message.chat.id, 'Количество проданных проходок - {}'.format(id), reply_markup=mk)
+            mk = generate_markup(['Вернуться в главное меню'])
+            bot.send_message(message.chat.id, 'Количество проданных проходок - {}'.format(id), reply_markup=mk)
 
     elif message.text == '/change_place':
-        bot.send_message(message.chat.id, 'Введите новое название на латынице без пробелов')
-        bot.register_next_step_handler(message, set_placename)
+        if message.chat.id in admins:
+            bot.send_message(message.chat.id, 'Введите новое название на латынице без пробелов')
+            bot.register_next_step_handler(message, set_placename)
 
     elif message.text == '/admin_help':
+        if message.chat.id in admins:
+            mk = generate_markup(['Вернуться в главное меню'])
+            bot.send_message(message.chat.id, '/change_max_visitors - изменить количество проходок (по умолчанию 60)\n'
+                                              '/show_visitors - показать тех, кто купил билеты\n'
+                                              '/show_number_of_visitors - количество купивших билеты\n'
+                                              '/change_place - изменить место (нужно для того, чтобы создалась новая '
+                                              'база данных на мероприятие)', reply_markup=mk)
+    elif message.text == '/show_id':
         mk = generate_markup(['Вернуться в главное меню'])
-        bot.send_message(message.chat.id, '/change_max_visitors - изменить количество проходок (по умолчанию 60)\n'
-                                          '/show_visitors - показать тех, кто купил билеты\n'
-                                          '/show_number_of_visitors - количество купивших билеты\n'
-                                          '/change_place - изменить место (нужно для того, чтобы создалась новая '
-                                          'база данных на мероприятие)', reply_markup=mk)
-
+        bot.send_message(message.chat.id, message.chat.id, reply_markup=mk)
 
 #устанавливаем название таблицы в базе данных
 def set_placename(message):
